@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+set -E -e -u -o pipefail
+
+declare -r LOGSH_LEVEL=${LOGSH_LEVEL:-101}
+declare -r EXE_FILENAME="git-goprivate"
+declare -r TMP_DIR="/tmp/.${EXE_FILENAME:?}" && mkdir -m 700 -p "${TMP_DIR:?}" && trap "rm -rf -- ${TMP_DIR:?}" EXIT
+declare -r LF=$'\n'
+declare -r REMOTE_FILE="https://raw.githubusercontent.com/hakadoriya/git-goprivate/main/${EXE_FILENAME:?}"
+
+# LICENSE: https://github.com/hakadoriya/log.sh/blob/HEAD/LICENSE
+# Common
+if [ "${LOGSH_COLOR:-}" ] || [ -t 2 ]; then LOGSH_COLOR=true; else LOGSH_COLOR=''; fi
+_logshRFC3339() { date "+%Y-%m-%dT%H:%M:%S%z" | sed "s/\(..\)$/:\1/"; }
+_logshCmd() { for a in "$@"; do if echo "${a:-}" | grep -Eq "[[:blank:]]"; then printf "'%s' " "${a:-}"; else printf "%s " "${a:-}"; fi; done | sed "s/ $//"; }
+# Color
+LogshDefault() { test "  ${LOGSH_LEVEL:-0}" -gt 000 || echo "$*" | awk "{print   \"$(_logshRFC3339) [${LOGSH_COLOR:+\\033[0;35m}  DEFAULT${LOGSH_COLOR:+\\033[0m}] \"\$0\"\"}" 1>&2; }
+LogshDebug() { test "    ${LOGSH_LEVEL:-0}" -gt 100 || echo "$*" | awk "{print   \"$(_logshRFC3339) [${LOGSH_COLOR:+\\033[0;34m}    DEBUG${LOGSH_COLOR:+\\033[0m}] \"\$0\"\"}" 1>&2; }
+LogshInfo() { test "     ${LOGSH_LEVEL:-0}" -gt 200 || echo "$*" | awk "{print   \"$(_logshRFC3339) [${LOGSH_COLOR:+\\033[0;32m}     INFO${LOGSH_COLOR:+\\033[0m}] \"\$0\"\"}" 1>&2; }
+LogshNotice() { test "   ${LOGSH_LEVEL:-0}" -gt 300 || echo "$*" | awk "{print   \"$(_logshRFC3339) [${LOGSH_COLOR:+\\033[0;36m}   NOTICE${LOGSH_COLOR:+\\033[0m}] \"\$0\"\"}" 1>&2; }
+LogshWarn() { test "     ${LOGSH_LEVEL:-0}" -gt 400 || echo "$*" | awk "{print   \"$(_logshRFC3339) [${LOGSH_COLOR:+\\033[0;33m}     WARN${LOGSH_COLOR:+\\033[0m}] \"\$0\"\"}" 1>&2; }
+LogshWarning() { test "  ${LOGSH_LEVEL:-0}" -gt 400 || echo "$*" | awk "{print   \"$(_logshRFC3339) [${LOGSH_COLOR:+\\033[0;33m}  WARNING${LOGSH_COLOR:+\\033[0m}] \"\$0\"\"}" 1>&2; }
+LogshError() { test "    ${LOGSH_LEVEL:-0}" -gt 500 || echo "$*" | awk "{print   \"$(_logshRFC3339) [${LOGSH_COLOR:+\\033[0;31m}    ERROR${LOGSH_COLOR:+\\033[0m}] \"\$0\"\"}" 1>&2; }
+LogshCritical() { test " ${LOGSH_LEVEL:-0}" -gt 600 || echo "$*" | awk "{print \"$(_logshRFC3339) [${LOGSH_COLOR:+\\033[0;1;31m} CRITICAL${LOGSH_COLOR:+\\033[0m}] \"\$0\"\"}" 1>&2; }
+LogshAlert() { test "    ${LOGSH_LEVEL:-0}" -gt 700 || echo "$*" | awk "{print   \"$(_logshRFC3339) [${LOGSH_COLOR:+\\033[0;41m}    ALERT${LOGSH_COLOR:+\\033[0m}] \"\$0\"\"}" 1>&2; }
+LogshEmergency() { test "${LOGSH_LEVEL:-0}" -gt 800 || echo "$*" | awk "{print \"$(_logshRFC3339) [${LOGSH_COLOR:+\\033[0;1;41m}EMERGENCY${LOGSH_COLOR:+\\033[0m}] \"\$0\"\"}" 1>&2; }
+LogshExec() { LogshDebug "$ $(_logshCmd "$@")" && "$@"; }
+LogshRun() { _dlm="####R#E#C#D#E#L#I#M#I#T#E#R####" && _all=$({ _out=$("$@") && _rtn=$? || _rtn=$? && printf "\n%s" "${_dlm:?}${_out:-}" && return "${_rtn:-0}"; } 2>&1) && _rtn=$? || _rtn=$? && _dlmno=$(echo "${_all:-}" | sed -n "/${_dlm:?}/=") && _cmd=$(_logshCmd "$@") && _stdout=$(echo "${_all:-}" | tail -n +"${_dlmno:-1}" | sed "s/^${_dlm:?}//") && _stderr=$(echo "${_all:-}" | head -n "${_dlmno:-1}" | grep -v "^${_dlm:?}") && LogshInfo "$ ${_cmd:-}" && LogshInfo "${_stdout:-}" && { [ -z "${_stderr:-}" ] || LogshWarning "${_stderr:?}"; } && return "${_rtn:-0}"; }
+
+SubcommandSetup() {
+  if [[ -z "${GOPRIVATE:-}" ]]; then
+    LogshError "GOPRIVATE is not set."
+    return 1
+  fi
+
+  local _opt_global=false
+  for arg in "$@"; do
+    case "${arg:-}" in
+    "--global") _opt_global=true ;;
+    esac
+  done
+  # if grep ^ghs_ /run/secrets/github_token > /dev/null 2>&1; then \
+  # echo "x-access-token:$(cat /run/secrets/github_token)" > /tmp/basic_auth; \
+  # else \
+  # echo "$(cat /run/secrets/github_token):x-oauth-basic" > /tmp/basic_auth; \
+  # fi && \
+  # echo "${GOPRIVATE:-}${GOPRIVATE+,}" | \
+  # while read -d , -r LINE; do \
+  # echo "set git config: https://$(cat /tmp/basic_auth)@${LINE}"; \
+  # git config --global url."https://$(cat /tmp/basic_auth)@${LINE}".insteadOf "https://${LINE}"; \
+  # done
+  if ! userinfo=$(
+    _github_token=${GITHUB_TOKEN:-}
+    [[ -n "${_github_token:-}" ]] || _github_token=${GH_TOKEN:-}
+    [[ -n "${_github_token:-}" ]] || _github_token=$(cat /run/secrets/github_token 2>/dev/null || true)
+    [[ -n "${_github_token:-}" ]] || exit 1
+    # ref: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-authentication-to-github#githubs-token-formats
+    if [[ "${_github_token:-}" =~ ^ghs_ ]]; then
+      echo "x-access-token:${_github_token}"
+    else
+      echo "${_github_token}:x-oauth-basic"
+    fi
+  ); then
+      LogshError "GITHUB_TOKEN or GH_TOKEN or /run/secrets/github_token is not set."
+    return 1
+  fi
+  LogshDebug "userinfo: ${userinfo:-}"
+  echo "${GOPRIVATE:-}${GOPRIVATE+,}" |
+    while read -d , -r LINE; do
+      if [[ "${_opt_global:-}" == true ]]; then
+        LogshExec git config --global url."https://${userinfo:-}@${LINE}".insteadOf "https://${LINE}"
+      else
+        LogshExec git config --local url."https://${userinfo:-}@${LINE}".insteadOf "https://${LINE}"
+      fi
+    done
+}
+
+SubcommandSelfUpdate() {
+  local script_file_path="${0:?}"
+  local tmp_file=${TMP_DIR:?}/${EXE_FILENAME:?}
+  local backup_file="${TMP_DIR:?}.backup/${EXE_FILENAME:?}"
+  LogshNotice "Download ${REMOTE_FILE:?}"
+  mkdir -p "${TMP_DIR:?}"
+  LogshExec curl -fLRSs "${REMOTE_FILE:?}" -o "${tmp_file:?}"
+  LogshNotice "Take backup ${script_file_path:?} to ${backup_file:?}"
+  LogshExec mv -f "${script_file_path:?}" "${backup_file:?}"
+  LogshNotice "Show the changes between old and new"
+  LogshExec diff -u "${backup_file:?}" "${tmp_file:?}" || true
+  LogshNotice "Update ${script_file_path:?} to ${REMOTE_FILE:?}"
+  LogshExec chmod +x "${tmp_file:?}"
+  LogshExec mv -f "${tmp_file:?}" "${script_file_path:?}"
+}
+
+SubcommandUsageAndReturn() {
+  cat <<EOF
+${EXE_FILENAME:?} - a git subcommand for setting up a .git/config file for \`GOPRIVATE\` environment variable.
+
+Usage:
+  ${EXE_FILENAME:?} <SUBCOMMAND>
+
+SUBCOMMAND:
+    setup
+        Set up a .git/config file for \`GOPRIVATE\` environment variable.
+        Usage:
+          ${EXE_FILENAME:?} setup [--global|--local]
+    help, usage
+        Show this help message.
+        Usage:
+          ${EXE_FILENAME:?} help
+EOF
+  return "${1:-0}"
+}
+
+Main() {
+  local subcmd="${1:-}"
+
+  case "${subcmd:-}" in
+  "setup")
+    shift
+    SubcommandSetup "$@"
+    ;;
+  "self-update")
+    SubcommandSelfUpdate
+    ;;
+  "help" | "usage")
+    SubcommandUsageAndReturn 0
+    ;;
+  *)
+    SubcommandUsageAndReturn 1
+    ;;
+  esac
+}
+
+Main "$@"
