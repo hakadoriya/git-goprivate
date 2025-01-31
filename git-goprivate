@@ -86,14 +86,14 @@ SubcommandSelfUpdate() {
 
 SubcommandUsageAndReturn() {
   cat <<EOF
-${EXE_FILENAME:?} - a git subcommand for setting up a .git/config file for \`GOPRIVATE\` environment variable.
+${EXE_FILENAME:?} - a git subcommand for configuring .git/config to work with the GOPRIVATE environment variable.
 
 Usage:
   ${EXE_FILENAME:?} <SUBCOMMAND>
 
 SUBCOMMAND:
     add
-        Add a .git/config file for \`GOPRIVATE\` environment variable.
+        Configure .git/config for use with the GOPRIVATE environment variable.
         Usage:
           ${EXE_FILENAME:?} add [--global|--local]
     help, usage
