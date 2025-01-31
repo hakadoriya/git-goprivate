@@ -61,8 +61,10 @@ SubcommandAdd() {
   echo "${GOPRIVATE:-}${GOPRIVATE+,}" |
     while read -d , -r LINE; do
       if [[ "${_opt_global:-}" == true ]]; then
+        LogshInfo "Configure global git config for ${LINE:?}"
         LogshExec git config --global url."https://${userinfo:?}@${LINE:?}".insteadOf "https://${LINE:?}"
       else
+        LogshInfo "Configure local git config for ${LINE:?}"
         LogshExec git config --local url."https://${userinfo:?}@${LINE:?}".insteadOf "https://${LINE:?}"
       fi
     done
