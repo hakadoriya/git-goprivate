@@ -32,7 +32,7 @@ SubcommandSetup() {
     LogshError "GOPRIVATE is not set."
     return 1
   fi
-  LogshDebug "GOPRIVATE: ${GOPRIVATE:-}"
+  LogshDebug "GOPRIVATE: ${GOPRIVATE:?}"
   # options
   local _opt_global=false
   for arg in "$@"; do
@@ -48,22 +48,22 @@ SubcommandSetup() {
     [[ -n "${_github_token:-}" ]] || exit 1
     # ref: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-authentication-to-github#githubs-token-formats
     if [[ "${_github_token:-}" =~ ^ghs_ ]]; then
-      echo "x-access-token:${_github_token}"
+      echo "x-access-token:${_github_token:?}"
     else
-      echo "${_github_token}:x-oauth-basic"
+      echo "${_github_token:?}:x-oauth-basic"
     fi
   ); then
       LogshError "GITHUB_TOKEN or GH_TOKEN or /run/secrets/github_token is not set."
     return 1
   fi
-  LogshDebug "userinfo: ${userinfo:-}"
+  LogshDebug "userinfo: ${userinfo:?}"
   # set git config
   echo "${GOPRIVATE:-}${GOPRIVATE+,}" |
     while read -d , -r LINE; do
       if [[ "${_opt_global:-}" == true ]]; then
-        LogshExec git config --global url."https://${userinfo:-}@${LINE}".insteadOf "https://${LINE}"
+        LogshExec git config --global url."https://${userinfo:?}@${LINE:?}".insteadOf "https://${LINE:?}"
       else
-        LogshExec git config --local url."https://${userinfo:-}@${LINE}".insteadOf "https://${LINE}"
+        LogshExec git config --local url."https://${userinfo:?}@${LINE:?}".insteadOf "https://${LINE:?}"
       fi
     done
 }
