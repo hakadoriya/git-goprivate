@@ -5,11 +5,17 @@
 ## Installation
 
 ```sh
-# install
-curl -sSfL https://raw.githubusercontent.com/hakadoriya/git-goprivate/main/git-goprivate -o /usr/local/bin/git-goprivate
+curl -sSfL https://raw.githubusercontent.com/hakadoriya/git-goprivate/main/git-goprivate -o ./git-goprivate && chmod +x ./git-goprivate
+```
 
-# now you can use `git-goprivate`
-git-goprivate
+If you want to use `git-goprivate` as a git subcommand, you can move it to a directory in PATH.
+
+```sh
+# e.g. move to a directory in PATH
+mv ./git-goprivate /usr/local/bin/git-goprivate
+
+# now you can use `git-goprivate` as a git subcommand
+git goprivate
 ```
 
 ## Features
