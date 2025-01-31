@@ -20,12 +20,12 @@ git goprivate
 
 ## Features
 
-### `setup`
+### `add`
 
-Set up a .git/config file for `GOPRIVATE` environment variable.
+Add a .git/config file for `GOPRIVATE` environment variable.
 
 ```console
-$ GITHUB_TOKEN=$(gh auth token) GOPRIVATE=github.com/hakadoriya git-goprivate setup
+$ GITHUB_TOKEN=$(gh auth token) GOPRIVATE=github.com/hakadoriya git-goprivate add
 
 $ tail -n 2 .git/config
 [url "https://gho_GITHUBACCESSTOKEN:x-oauth-basic@github.com/hakadoriya"]
@@ -42,10 +42,10 @@ Usage:
   git-goprivate <SUBCOMMAND>
 
 SUBCOMMAND:
-    setup
-        Set up a .git/config file for `GOPRIVATE` environment variable.
+    add
+        Add a .git/config file for `GOPRIVATE` environment variable.
         Usage:
-          git-goprivate setup [--global|--local]
+          git-goprivate add [--global|--local]
     help, usage
         Show this help message.
         Usage:
