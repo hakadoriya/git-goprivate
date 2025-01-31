@@ -27,27 +27,20 @@ LogshExec() { LogshDebug "$ $(_logshCmd "$@")" && "$@"; }
 LogshRun() { _dlm="####R#E#C#D#E#L#I#M#I#T#E#R####" && _all=$({ _out=$("$@") && _rtn=$? || _rtn=$? && printf "\n%s" "${_dlm:?}${_out:-}" && return "${_rtn:-0}"; } 2>&1) && _rtn=$? || _rtn=$? && _dlmno=$(echo "${_all:-}" | sed -n "/${_dlm:?}/=") && _cmd=$(_logshCmd "$@") && _stdout=$(echo "${_all:-}" | tail -n +"${_dlmno:-1}" | sed "s/^${_dlm:?}//") && _stderr=$(echo "${_all:-}" | head -n "${_dlmno:-1}" | grep -v "^${_dlm:?}") && LogshInfo "$ ${_cmd:-}" && LogshInfo "${_stdout:-}" && { [ -z "${_stderr:-}" ] || LogshWarning "${_stderr:?}"; } && return "${_rtn:-0}"; }
 
 SubcommandSetup() {
+  # check GOPRIVATE
   if [[ -z "${GOPRIVATE:-}" ]]; then
     LogshError "GOPRIVATE is not set."
     return 1
   fi
-
+  LogshDebug "GOPRIVATE: ${GOPRIVATE:-}"
+  # options
   local _opt_global=false
   for arg in "$@"; do
     case "${arg:-}" in
     "--global") _opt_global=true ;;
     esac
   done
-  # if grep ^ghs_ /run/secrets/github_token > /dev/null 2>&1; then \
-  # echo "x-access-token:$(cat /run/secrets/github_token)" > /tmp/basic_auth; \
-  # else \
-  # echo "$(cat /run/secrets/github_token):x-oauth-basic" > /tmp/basic_auth; \
-  # fi && \
-  # echo "${GOPRIVATE:-}${GOPRIVATE+,}" | \
-  # while read -d , -r LINE; do \
-  # echo "set git config: https://$(cat /tmp/basic_auth)@${LINE}"; \
-  # git config --global url."https://$(cat /tmp/basic_auth)@${LINE}".insteadOf "https://${LINE}"; \
-  # done
+  # userinfo
   if ! userinfo=$(
     _github_token=${GITHUB_TOKEN:-}
     [[ -n "${_github_token:-}" ]] || _github_token=${GH_TOKEN:-}
@@ -64,6 +57,7 @@ SubcommandSetup() {
     return 1
   fi
   LogshDebug "userinfo: ${userinfo:-}"
+  # set git config
   echo "${GOPRIVATE:-}${GOPRIVATE+,}" |
     while read -d , -r LINE; do
       if [[ "${_opt_global:-}" == true ]]; then
