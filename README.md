@@ -1,6 +1,6 @@
 # [`git-goprivate`](https://github.com/hakadoriya/git-goprivate)
 
-`git-goprivate` is a git subcommand for setting up a .git/config file for `GOPRIVATE` environment variable.
+`git-goprivate` is a git subcommand for configuring `.git/config` to work with the `GOPRIVATE` environment variable.
 
 ## Installation
 
@@ -8,13 +8,13 @@
 curl -sSfL https://raw.githubusercontent.com/hakadoriya/git-goprivate/main/git-goprivate -o ./git-goprivate && chmod +x ./git-goprivate
 ```
 
-If you want to use `git-goprivate` as a git subcommand, you can move it to a directory in PATH.
+To use `git-goprivate` as a git subcommand, move it to a directory in your PATH:
 
 ```sh
-# e.g. move to a directory in PATH
+# Example: Move to a directory in PATH
 mv ./git-goprivate /usr/local/bin/git-goprivate
 
-# now you can use `git-goprivate` as a git subcommand
+# Now you can use it as a git subcommand
 git goprivate
 ```
 
@@ -22,7 +22,7 @@ git goprivate
 
 ### `add`
 
-Add a .git/config file for `GOPRIVATE` environment variable.
+Configures `.git/config` for use with the `GOPRIVATE` environment variable.
 
 ```console
 $ GITHUB_TOKEN=$(gh auth token) GOPRIVATE=github.com/hakadoriya git-goprivate add
@@ -36,14 +36,14 @@ $ tail -n 2 .git/config
 
 ```console
 $ git-goprivate
-git-goprivate - a git subcommand for setting up a .git/config file for `GOPRIVATE` environment variable.
+git-goprivate - a git subcommand for configuring .git/config to work with the GOPRIVATE environment variable.
 
 Usage:
   git-goprivate <SUBCOMMAND>
 
 SUBCOMMAND:
     add
-        Add a .git/config file for `GOPRIVATE` environment variable.
+        Configure .git/config for use with the GOPRIVATE environment variable.
         Usage:
           git-goprivate add [--global|--local]
     help, usage
