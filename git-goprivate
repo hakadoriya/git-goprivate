@@ -71,7 +71,7 @@ SubcommandSetup() {
 SubcommandSelfUpdate() {
   local script_file_path="${0:?}"
   local tmp_file=${TMP_DIR:?}/${EXE_FILENAME:?}
-  local backup_file="${TMP_DIR:?}.backup/${EXE_FILENAME:?}"
+  local backup_file="${TMP_DIR:?}.backup/${EXE_FILENAME:?}" && mkdir -p "${backup_file:?}"
   LogshNotice "Download ${REMOTE_FILE:?}"
   mkdir -p "${TMP_DIR:?}"
   LogshExec curl -fLRSs "${REMOTE_FILE:?}" -o "${tmp_file:?}"
